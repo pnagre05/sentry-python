@@ -31,6 +31,7 @@ from sentry_sdk.session import Session
 from sentry_sdk.traces import (
     _DEFAULT_PARENT_SPAN,
     NoOpStreamedSpan,
+    SegmentNameSource,
     StreamedSpan,
 )
 from sentry_sdk.tracing import (
@@ -862,9 +863,12 @@ class Scope:
             if isinstance(self._span, StreamedSpan):
                 self._span._segment.name = name
                 if source:
+                    source_value = getattr(source, "value", source)
                     self._span._segment.set_attribute(
-                        "sentry.segment.name.source", getattr(source, "value", source)
+                        "sentry.segment.name.source", source_value
                     )
+                    if source_value == SegmentNameSource.ROUTE.value:
+                        self._span._segment.set_attribute(SPANDATA.HTTP_ROUTE, name)
 
             elif self._span.containing_transaction:
                 self._span.containing_transaction.name = name
